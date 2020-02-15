@@ -39,10 +39,7 @@ impl MonitorThread {
         let res = self
             .thread_handle
             .take()
-            .ok_or(Error::new(
-                Cause::InvalidState,
-                "Cannot call wait on a stopped thread",
-            ))?
+            .ok_or_else(|| Error::new(Cause::InvalidState, "Cannot call wait on a stopped thread"))?
             .join();
 
         if let Err(_e) = res {

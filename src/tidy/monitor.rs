@@ -72,7 +72,7 @@ impl TryFrom<MonitorDefinition> for Monitor {
         }?;
 
         let rules: CausedResult<Vec<Rule<File, FileField>>> =
-            other.rules.into_iter().map(|r| Rule::try_from(r)).collect();
+            other.rules.into_iter().map(Rule::try_from).collect();
 
         Ok(Monitor {
             root_directory: PathBuf::from(
@@ -90,7 +90,7 @@ impl TryFrom<RuleDefinition> for Rule<File, FileField> {
 
     fn try_from(other: RuleDefinition) -> CausedResult<Rule<File, FileField>> {
         Ok(Rule::new(
-            other.name,
+            //other.name,
             Condition::parse(&other.condition)?,
             other.action.action_obj()?,
         ))

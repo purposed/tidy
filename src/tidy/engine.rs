@@ -24,7 +24,7 @@ impl Engine {
         let monitors = man
             .monitors
             .into_iter()
-            .map(|f| Monitor::try_from(f))
+            .map(Monitor::try_from)
             .collect::<CausedResult<Vec<Monitor>>>()?;
 
         Ok(Engine {
@@ -36,10 +36,10 @@ impl Engine {
 
     pub fn start(&mut self) -> CausedResult<()> {
         self.output.step("Tidy Engine started");
-        let mons = self.monitors.take().ok_or(Error::new(
-            Cause::InvalidState,
-            "Cannot start a started engine",
-        ))?;
+        let mons = self
+            .monitors
+            .take()
+            .ok_or_else(|| Error::new(Cause::InvalidState, "Cannot start a started engine"))?;
 
         let mut threads = Vec::new();
         for monitor in mons.into_iter() {
@@ -55,7 +55,7 @@ impl Engine {
         let mut threads = self
             .threads
             .take()
-            .ok_or(Error::new(Cause::InvalidState, "No threads running"))?;
+            .ok_or_else(|| Error::new(Cause::InvalidState, "No threads running"))?;
 
         threads.iter_mut().try_for_each(|t| {
             t.signal_stop()?;

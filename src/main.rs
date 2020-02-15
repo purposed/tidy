@@ -11,7 +11,7 @@ use rood::cli::OutputManager;
 use rood::CausedResult;
 use tidy::Engine;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn cli_run(matches: &ArgMatches) -> CausedResult<()> {
     let verbose = matches.is_present("verbose");

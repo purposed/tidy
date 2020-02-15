@@ -8,7 +8,7 @@ pub struct Rule<T, F>
 where
     F: TryFrom<String>,
 {
-    name: String,
+    //name: String,
     condition: Condition<F>,
     action: Box<dyn Action<T, F> + Send>,
 }
@@ -19,12 +19,12 @@ where
     F: TryFrom<String>,
 {
     pub fn new(
-        name: String,
+        //name: String,
         condition: Condition<F>,
         action: Box<dyn Action<T, F> + Send>,
     ) -> Rule<T, F> {
         Rule {
-            name,
+            //name,
             condition,
             action,
         }
