@@ -13,9 +13,9 @@ use super::file::{File, FileField};
 use super::manifest::{MonitorDefinition, RuleDefinition};
 
 pub struct Monitor {
-    root_directory: PathBuf,
-    recursive: bool,
-    check_frequency: time::Duration,
+    pub root_directory: PathBuf,
+    pub recursive: bool,
+    pub check_frequency: time::Duration,
     rules: Vec<Rule<File, FileField>>,
 }
 
@@ -29,7 +29,6 @@ impl Monitor {
         if p == self.root_directory {
             return Ok(false);
         }
-        println!("Trying: {:?}", &p);
         let f = File::new(&p)?;
 
         let mut at_least_one = false;

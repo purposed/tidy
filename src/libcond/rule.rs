@@ -10,7 +10,7 @@ where
 {
     name: String,
     condition: Condition<F>,
-    action: Box<dyn Action<T, F>>,
+    action: Box<dyn Action<T, F> + Send>,
 }
 
 impl<T, F> Rule<T, F>
@@ -18,7 +18,11 @@ where
     T: GetField<F>,
     F: TryFrom<String>,
 {
-    pub fn new(name: String, condition: Condition<F>, action: Box<dyn Action<T, F>>) -> Rule<T, F> {
+    pub fn new(
+        name: String,
+        condition: Condition<F>,
+        action: Box<dyn Action<T, F> + Send>,
+    ) -> Rule<T, F> {
         Rule {
             name,
             condition,

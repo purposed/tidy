@@ -1,15 +1,27 @@
 mod tidy;
 
-use std::convert::TryFrom;
 use std::fs;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time;
 
-use tidy::{Manifest, Monitor};
+use tidy::{Engine, Manifest, Monitor};
 
 fn main() {
-    let raw_data = fs::read_to_string("./test_cfg.json").unwrap();
-    let man: Manifest = serde_json::from_str(&raw_data).unwrap();
-    for mon_def in man.monitors.into_iter() {
-        let mon = Monitor::try_from(mon_def).unwrap();
-        mon.check().unwrap()
-    }
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .expect("Error setting Ctrl-C handler");
+
+    let raw_data =
+        fs::read_to_string("/home/wdussault/.config/dalloriam/tidy/config.json").unwrap();
+    let mut engine = Engine::new(&raw_data).unwrap();
+    engine.start().unwrap();
+
+    while running.load(Ordering::SeqCst) {}
+    engine.stop().unwrap();
 }

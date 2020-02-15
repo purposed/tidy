@@ -17,7 +17,7 @@ pub enum FileAction {
 }
 
 impl FileAction {
-    pub fn action_obj(&self) -> CausedResult<Box<dyn Action<File, FileField>>> {
+    pub fn action_obj(&self) -> CausedResult<Box<dyn Action<File, FileField> + Send>> {
         // Not super elegant, but works OK.
         Ok(match self {
             FileAction::Delete(a) => Box::from(a.clone()),
