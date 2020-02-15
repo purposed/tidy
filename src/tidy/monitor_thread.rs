@@ -7,7 +7,6 @@ use rood::cli::OutputManager;
 use rood::{Cause, CausedResult, Error};
 
 use crate::tidy::Monitor;
-use rood::error::Cause::InvalidState;
 
 pub struct MonitorThread {
     thread_handle: Option<JoinHandle<()>>,
@@ -46,10 +45,10 @@ impl MonitorThread {
             ))?
             .join();
 
-        if let Err(e) = res {
+        if let Err(_e) = res {
             return Err(Error::new(
                 Cause::GeneralError(String::from("ThreadError")),
-                "Failed to join thread",
+                "Failed to join thread ({})",
             ));
         }
         Ok(())

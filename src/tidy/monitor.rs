@@ -7,7 +7,7 @@ use std::time;
 use libcond::{Condition, Rule};
 use rood::{Cause, CausedResult, Error};
 use shellexpand::tilde;
-use walkdir::{DirEntry, WalkDir};
+use walkdir::WalkDir;
 
 use super::file::{File, FileField};
 use super::manifest::{MonitorDefinition, RuleDefinition};
@@ -45,7 +45,7 @@ impl Monitor {
             for pos_path in wk.into_iter() {
                 match pos_path {
                     Ok(d_entry) => {
-                        let applied = self.try_apply(d_entry.path())?; // TODO: Do something with.
+                        let _applied = self.try_apply(d_entry.path())?; // TODO: Do something with.
                     }
                     Err(e) => return Err(Error::new(Cause::IOError, &format!("{}", e))),
                 }
@@ -55,7 +55,7 @@ impl Monitor {
             let data = fs::read_dir(&self.root_directory)?;
             for f in data.into_iter() {
                 let dir_entry = f?;
-                let applied = self.try_apply(dir_entry.path())?; // TODO: Use.
+                let _applied = self.try_apply(dir_entry.path())?; // TODO: Use.
             }
         }
         Ok(())

@@ -1,5 +1,4 @@
 use std::convert::TryFrom;
-use std::path::Path;
 
 use rood::{Cause, CausedResult, Error};
 
@@ -19,7 +18,7 @@ impl Engine {
     pub fn new(config_source: &str) -> CausedResult<Engine> {
         let man: Manifest = match serde_json::from_str(config_source) {
             Ok(m) => m,
-            Err(e) => return Err(Error::new(Cause::InvalidData, "Invalid config JSON")),
+            Err(_e) => return Err(Error::new(Cause::InvalidData, "Invalid config JSON")),
         };
 
         let monitors = man

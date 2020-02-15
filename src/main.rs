@@ -3,10 +3,8 @@ mod tidy;
 use std::fs;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
-use std::time;
 
-use tidy::{Engine, Manifest, Monitor};
+use tidy::Engine;
 
 fn main() {
     let running = Arc::new(AtomicBool::new(true));
