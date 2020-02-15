@@ -9,7 +9,6 @@ use std::time;
 use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 use rood::cli::OutputManager;
 use rood::CausedResult;
-use std::process::Output;
 use tidy::Engine;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
@@ -54,7 +53,7 @@ fn main() {
                 .about("Starts the Tidy watcher")
                 .arg(
                     Arg::with_name("config")
-                        .long("config")
+                        .long("cfg")
                         .short("c")
                         .help("Path to the config file to use")
                         .required(false)
