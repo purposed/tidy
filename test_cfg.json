@@ -1,0 +1,18 @@
+{
+  "monitors": [
+    {
+      "root_directory": "~/dump",
+      "recursive": true,
+      "check_frequency": "30s",
+      "rules": [
+        {
+          "name": "Remove small files",
+          "condition": "@size < 10",
+          "action": {
+            "type": "delete"
+          }
+        }
+      ]
+    }
+  ]
+}
