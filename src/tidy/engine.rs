@@ -15,7 +15,7 @@ pub struct Engine {
 }
 
 impl Engine {
-    pub fn new(config_source: &str) -> CausedResult<Engine> {
+    pub fn new(config_source: &str, verbose: bool) -> CausedResult<Engine> {
         let man: Manifest = match serde_json::from_str(config_source) {
             Ok(m) => m,
             Err(_e) => return Err(Error::new(Cause::InvalidData, "Invalid config JSON")),
@@ -30,7 +30,7 @@ impl Engine {
         Ok(Engine {
             monitors: Some(monitors),
             threads: None,
-            output: OutputManager::new(true), // TODO: Parametrize verbosity
+            output: OutputManager::new(verbose),
         })
     }
 
