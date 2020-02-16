@@ -1,5 +1,5 @@
 name = 'tidy'
-version = '0.1.1'
+version = '0.1.2'
 stack = 'rust'
 artifact_directory = 'artifacts'
 
@@ -11,4 +11,4 @@ platform = 'linux'
 name = 'tidy'
 include_checksum = false
 path_template = '$(BUILD)/tidy'
-target_name_template = 'tidy'
+target_name_template = 'tidy-$(PLATFORM)-$(ARCHITECTURE)'
