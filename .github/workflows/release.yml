@@ -18,13 +18,12 @@ jobs:
           override: true
       - name: Bootstrap Landlord
         run: |
-          mkdir ~/bin
           sudo wget https://github.com/purposed/binman/releases/latest/download/binman-linux-amd64 -O /usr/local/bin/binman
           sudo chmod +x /usr/local/bin/binman
-          binman install landlord
+          binman install --dir /usr/local/bin landlord
       - name: Landlord Release
         run: |
-          ~/bin/landlord release
+          landlord release
       - name: Release
         uses: docker://softprops/action-gh-release
         if: startsWith(github.ref, 'refs/tags/')
