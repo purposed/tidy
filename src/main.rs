@@ -30,7 +30,7 @@ fn cli_run(matches: &ArgMatches) -> CausedResult<()> {
     engine.start()?;
 
     while running.load(Ordering::SeqCst) {
-        thread::sleep(time::Duration::from_millis(0));
+        thread::sleep(time::Duration::from_millis(1000));
     }
     engine.stop()
 }
