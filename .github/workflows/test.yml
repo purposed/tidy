@@ -22,6 +22,7 @@ jobs:
         run: |
           sudo wget https://github.com/purposed/binman/releases/latest/download/binman-linux-amd64 -O /usr/local/bin/binman
           sudo chmod +x /usr/local/bin/binman
+          binman --version
           binman install --dir /usr/local/bin landlord
       - name: Validate
         run: |
