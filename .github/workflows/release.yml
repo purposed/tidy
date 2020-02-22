@@ -18,9 +18,10 @@ jobs:
           override: true
       - name: Bootstrap Landlord
         run: |
-          sudo wget https://github.com/purposed/binman/releases/latest/download/binman-linux-amd64 -O /usr/local/bin/binman
+          sudo wget https://github.com/purposed/binman/releases/download/v0.2.0/binman-linux-amd64 -O /usr/local/bin/binman
           sudo chmod +x /usr/local/bin/binman
-          binman install --dir /usr/local/bin landlord
+          binman --version
+          sudo binman install --dir /usr/local/bin landlord
       - name: Landlord Release
         run: |
           landlord release
