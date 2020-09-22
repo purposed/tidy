@@ -2,12 +2,15 @@ use std::convert::TryFrom;
 
 use snafu::{ResultExt, Snafu};
 
+use crate::parser::{parse_condition, Error as ParserError};
 use crate::GetField;
 
 #[derive(Clone, Debug, Snafu)]
 pub enum Error {
     BoolOperatorCastError { operator: String },
     FieldOperatorCastError { operator: String },
+    GetFieldError { message: String },
+    ParseError { source: ParserError },
 }
 
 #[derive(Debug)]
@@ -18,7 +21,6 @@ pub enum FieldOperator {
     Gt,
     Leq,
     Geq,
-    Unknown,
 }
 
 type Result<T> = std::result::Result<T, Error>;
@@ -73,13 +75,14 @@ impl<F> Condition<F>
 where
     F: TryFrom<String>,
 {
-    pub fn parse(src: &str) -> CausedResult<Condition<F>> {
-        parse_condition(src)
+    pub fn parse(src: &str) -> Result<Condition<F>> {
+        parse_condition(src).context(ParseError)
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
         match self {
             Condition::FieldCondition(f) => f.eval(target),
@@ -107,11 +110,16 @@ where
         }
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
-        let field_val = target.get_field(&self.field)?;
+        let field_val = target
+            .get_field(&self.field)
+            .map_err(|e| Error::GetFieldError {
+                message: e.to_string(),
+            })?;
 
         Ok(match self.operator {
             FieldOperator::Equal => field_val == self.value,
@@ -147,9 +155,10 @@ where
         }
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
         let left_val = self.lhs_cond.eval(target)?;
         let right_val = self.rhs_cond.eval(target)?;
