@@ -1,8 +1,14 @@
 use std::convert::TryFrom;
 
-use rood::{Cause, CausedResult, Error};
+use snafu::{ResultExt, Snafu};
 
-use crate::{parse_condition, GetField};
+use crate::GetField;
+
+#[derive(Clone, Debug, Snafu)]
+pub enum Error {
+    BoolOperatorCastError { operator: String },
+    FieldOperatorCastError { operator: String },
+}
 
 #[derive(Debug)]
 pub enum FieldOperator {
@@ -12,22 +18,25 @@ pub enum FieldOperator {
     Gt,
     Leq,
     Geq,
+    Unknown,
 }
 
-impl TryFrom<String> for FieldOperator {
+type Result<T> = std::result::Result<T, Error>;
+
+impl TryFrom<&str> for FieldOperator {
     type Error = Error;
-    fn try_from(v: String) -> CausedResult<FieldOperator> {
-        match v.as_ref() {
+
+    fn try_from(v: &str) -> Result<FieldOperator> {
+        match v {
             "==" => Ok(FieldOperator::Equal),
             "!=" => Ok(FieldOperator::NotEqual),
             "<" => Ok(FieldOperator::Lt),
             ">" => Ok(FieldOperator::Gt),
             "<=" => Ok(FieldOperator::Leq),
             ">=" => Ok(FieldOperator::Geq),
-            _ => Err(Error::new(
-                Cause::InvalidData,
-                &format!("Could not cast '{}' to FieldOperator", v),
-            )),
+            _ => Err(Error::FieldOperatorCastError {
+                operator: v.to_string(),
+            }),
         }
     }
 }
@@ -39,18 +48,17 @@ pub enum BoolOperator {
     Xor,
 }
 
-impl TryFrom<String> for BoolOperator {
+impl TryFrom<&str> for BoolOperator {
     type Error = Error;
 
-    fn try_from(v: String) -> CausedResult<BoolOperator> {
+    fn try_from(v: &str) -> Result<BoolOperator> {
         match v.as_ref() {
             "&&" => Ok(BoolOperator::And),
             "||" => Ok(BoolOperator::Or),
             "-|" => Ok(BoolOperator::Xor),
-            _ => Err(Error::new(
-                Cause::InvalidData,
-                &format!("Could not cast '{}' to BoolOperator", v),
-            )),
+            _ => Err(Error::BoolOperatorCastError {
+                operator: v.to_string(),
+            }),
         }
     }
 }

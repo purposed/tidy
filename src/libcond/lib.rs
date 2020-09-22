@@ -1,3 +1,5 @@
+//! Abstract condition execution library.
+
 mod action;
 mod condition;
 mod field_value;
