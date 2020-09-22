@@ -1,10 +1,15 @@
 use std::collections::HashMap;
 use std::convert::TryFrom;
 
-use rood::{Cause, CausedResult, Error};
+use snafu::Snafu;
 
 use crate::field_value::FieldValue;
 use crate::get_field::GetField;
+
+#[derive(Debug, Snafu)]
+pub enum Error {
+    InvalidData,
+}
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub enum VirtualField {
@@ -51,11 +56,8 @@ impl VirtualDocument {
 }
 
 impl GetField<VirtualField> for VirtualDocument {
-    fn get_field(&self, field: &VirtualField) -> CausedResult<FieldValue> {
-        Ok(self
-            .internal
-            .get(field)
-            .ok_or(Error::new(Cause::InvalidData, "Invalid field"))?
-            .clone())
+    type Error = Error;
+    fn get_field(&self, field: &VirtualField) -> Result<FieldValue, Error> {
+        Ok(self.internal.get(field).ok_or(Error::InvalidData)?.clone())
     }
 }

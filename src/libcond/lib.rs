@@ -6,6 +6,7 @@ mod field_value;
 mod get_field;
 mod parser;
 mod rule;
+mod syntax;
 
 // Library interface
 pub use action::Action;

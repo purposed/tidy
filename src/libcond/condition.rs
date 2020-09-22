@@ -13,7 +13,7 @@ pub enum Error {
     ParseError { source: ParserError },
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FieldOperator {
     Equal,
     NotEqual,

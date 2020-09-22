@@ -12,46 +12,8 @@ use nom::{
 
 use snafu::Snafu;
 
-use crate::condition::{BaseCondition, BoolOperator, Condition, FieldOperator};
+use crate::condition::{BaseCondition, BoolOperator, Condition, FieldOperator, NestedCondition};
 
-#[derive(Clone, Debug, Snafu)]
-pub enum Error {
-    ParseError { message: String },
-}
-
-fn whitespace(i: &str) -> IResult<&str, &str> {
-    let chars = " \t\r\n";
-    take_while(move |c| chars.contains(c))(i)
-}
-
-fn field_operator(i: &str) -> IResult<&str, FieldOperator> {
-    map(
-        delimited(
-            whitespace,
-            alt((
-                tag("=="),
-                tag("!="),
-                tag("<"),
-                tag(">"),
-                tag("<="),
-                tag(">="),
-            )),
-            whitespace,
-        ),
-        |c| FieldOperator::try_from(c).unwrap(),
-    )(i)
-}
-
-fn bool_operator(i: &str) -> IResult<&str, BoolOperator> {
-    map(
-        delimited(
-            whitespace,
-            alt((tag("&&"), tag("||"), tag("-|"))),
-            whitespace,
-        ),
-        |c| BoolOperator::try_from(c).unwrap(),
-    )(i)
-}
 
 fn literal(i: &str) -> IResult<&str, String> {
     map(delimited(whitespace, many0(anychar), whitespace), |c| {
@@ -92,8 +54,39 @@ where
     )(i)
 }
 
+fn nested_condition<F>(i: &str) -> IResult<&str, Condition<F>>
+where
+    F: TryFrom<String>,
+{
+    map(
+        delimited(
+            whitespace,
+            delimited(
+                tag("("),
+                tuple((condition, bool_operator, condition)),
+                tag(")"),
+            ),
+            whitespace,
+        ),
+        |(left_member, bool_op, right_member)| {
+            Condition::BoolCondition(Box::from(NestedCondition::new(
+                left_member,
+                bool_op,
+                right_member,
+            )))
+        },
+    )(i)
+}
+
+fn condition<F>(i: &str) -> IResult<&str, Condition<F>>
+where
+    F: TryFrom<String>,
+{
+    alt((nested_condition, expression))(i)
+}
+
 pub fn parse_condition<F: TryFrom<String>>(i: &str) -> Result<Condition<F>, Error> {
-    match expression(i) {
+    match condition(i) {
         Ok((rest, cond)) => {
             assert_eq!(rest, "");
             Ok(cond)
