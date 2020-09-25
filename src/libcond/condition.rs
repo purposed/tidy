@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 
 use snafu::{ResultExt, Snafu};
 
-use crate::parser::{parse_condition, Error as ParserError};
+use crate::syntax;
 use crate::GetField;
 
 #[derive(Clone, Debug, Snafu)]
@@ -10,7 +10,7 @@ pub enum Error {
     BoolOperatorCastError { operator: String },
     FieldOperatorCastError { operator: String },
     GetFieldError { message: String },
-    ParseError { source: ParserError },
+    ParseError { source: syntax::Error },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -43,7 +43,7 @@ impl TryFrom<&str> for FieldOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BoolOperator {
     And,
     Or,
@@ -76,7 +76,7 @@ where
     F: TryFrom<String>,
 {
     pub fn parse(src: &str) -> Result<Condition<F>> {
-        parse_condition(src).context(ParseError)
+        syntax::parse_condition(src).context(ParseError)
     }
 
     pub fn eval<T>(&self, target: &T) -> Result<bool>
