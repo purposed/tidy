@@ -24,6 +24,11 @@ jobs:
           sudo chmod +x /usr/local/bin/binman
           binman --version
           sudo binman install --dir /usr/local/bin landlord
+      - name: Mount build cache
+        uses: actions/cache@v1
+        with:
+          path: "target"
+          key: tidy-release-cache
       - name: Validate
         run: |
           landlord validate --mode release
