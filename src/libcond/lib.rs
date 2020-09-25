@@ -4,7 +4,6 @@ mod action;
 mod condition;
 mod field_value;
 mod get_field;
-mod parser;
 mod rule;
 mod syntax;
 
