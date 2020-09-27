@@ -1,7 +1,6 @@
 use std::convert::TryFrom;
-use std::fmt::Display;
 
-use snafu::{ResultExt, Snafu};
+use snafu::Snafu;
 
 use crate::{Action, Condition, GetField};
 
@@ -23,7 +22,7 @@ where
 impl<T, F> Rule<T, F>
 where
     T: GetField<F>,
-    T::Error: Display,
+    T::Error: std::error::Error,
     F: TryFrom<String>,
 {
     pub fn new(

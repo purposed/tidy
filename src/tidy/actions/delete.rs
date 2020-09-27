@@ -1,10 +1,8 @@
 use std::fs;
 
-use rood::{Cause, CausedResult, Error};
-
 use serde::{Deserialize, Serialize};
 
-use libcond::{Action, FieldValue, GetField};
+use libcond::{Action, ExecutionError, FieldValue, GetField};
 
 use crate::tidy::file::FileField;
 
@@ -15,7 +13,7 @@ impl<T> Action<T, FileField> for DeleteAction
 where
     T: GetField<FileField>,
 {
-    fn execute(&self, file: &T) -> CausedResult<()> {
+    fn execute(&self, file: &T) -> Result<(), ExecutionError> {
         let field_val = file.get_field(&FileField::Path)?;
         match field_val {
             FieldValue::String(path) => {
@@ -26,7 +24,7 @@ where
                 }
                 Ok(())
             }
-            _ => Err(Error::new(Cause::InvalidData, "File path must be a string")),
+            _ => Err(ExecutionError::new("Path must be a string")),
         }
     }
 }

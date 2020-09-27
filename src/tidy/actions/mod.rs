@@ -1,7 +1,8 @@
-use serde::{Deserialize, Serialize};
+use anyhow::Result;
 
 use libcond::Action;
-use rood::CausedResult;
+
+use serde::{Deserialize, Serialize};
 
 use super::file::{File, FileField};
 
@@ -17,7 +18,7 @@ pub enum FileAction {
 }
 
 impl FileAction {
-    pub fn action_obj(&self) -> CausedResult<Box<dyn Action<File, FileField> + Send>> {
+    pub fn action_obj(&self) -> Result<Box<dyn Action<File, FileField> + Send>> {
         // Not super elegant, but works OK.
         Ok(match self {
             FileAction::Delete(a) => Box::from(a.clone()),

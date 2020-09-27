@@ -1,13 +1,14 @@
+use std::convert::Infallible;
+use std::convert::TryFrom;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time;
 
-use rood::{Cause, CausedResult, Error};
-
-use serde::{Deserialize, Serialize};
+use anyhow::{anyhow, Result};
 
 use libcond::{FieldValue, GetField};
-use std::convert::TryFrom;
+
+use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Serialize)]
 pub enum FileField {
@@ -21,19 +22,16 @@ pub enum FileField {
 }
 
 impl TryFrom<String> for FileField {
-    type Error = Error;
+    type Error = anyhow::Error;
 
-    fn try_from(v: String) -> CausedResult<FileField> {
+    fn try_from(v: String) -> Result<FileField> {
         match v.as_ref() {
             "name" => Ok(FileField::Name),
             "extension" => Ok(FileField::Extension),
             "size" => Ok(FileField::Size),
             "age" => Ok(FileField::Age),
             "path" => Ok(FileField::Path),
-            _ => Err(Error::new(
-                Cause::InvalidData,
-                &format!("Can't cast '{}' to FileField", v),
-            )),
+            _ => Err(anyhow!("Canot cast {} to file field", &v)),
         }
     }
 }
@@ -45,7 +43,7 @@ pub struct File {
 }
 
 impl File {
-    pub fn new<P>(path: P) -> CausedResult<File>
+    pub fn new<P>(path: P) -> Result<File>
     where
         P: AsRef<Path>,
     {
@@ -59,7 +57,9 @@ impl File {
 }
 
 impl GetField<FileField> for File {
-    fn get_field(&self, field: &FileField) -> CausedResult<FieldValue> {
+    type Error = Infallible;
+
+    fn get_field(&self, field: &FileField) -> Result<FieldValue, Self::Error> {
         // TODO: Handle errors cleanly
         match field {
             FileField::Name => Ok(FieldValue::String(String::from(
@@ -73,7 +73,9 @@ impl GetField<FileField> for File {
             ))),
             FileField::Size => Ok(FieldValue::Number(self.metadata.len())),
             FileField::Age => Ok(FieldValue::Duration(
-                time::SystemTime::now().duration_since(self.metadata.modified()?)?,
+                time::SystemTime::now()
+                    .duration_since(self.metadata.modified().unwrap())
+                    .unwrap(),
             )),
             //FileField::Created => Ok(FieldValue::Time(self.metadata.created()?)),
             //FileField::Modified => Ok(FieldValue::Time((self.metadata.modified()?)))

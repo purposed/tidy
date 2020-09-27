@@ -1,13 +1,4 @@
-use nom::{
-    bytes::complete::take_while,
-    character::complete::{alphanumeric1, anychar, char},
-    character::is_alphabetic,
-    combinator::{all_consuming, opt, recognize, verify},
-    multi::many0_count,
-    sequence::pair,
-    sequence::preceded,
-    IResult,
-};
+use nom::{bytes::complete::take_while, IResult};
 
 pub fn identifier(s: &str) -> IResult<&str, &str> {
     take_while(move |c: char| c == '_' || c.is_alphabetic())(s)
