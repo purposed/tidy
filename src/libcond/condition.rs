@@ -54,7 +54,7 @@ impl TryFrom<&str> for BoolOperator {
     type Error = Error;
 
     fn try_from(v: &str) -> Result<BoolOperator> {
-        match v.as_ref() {
+        match v {
             "&&" => Ok(BoolOperator::And),
             "||" => Ok(BoolOperator::Or),
             "-|" => Ok(BoolOperator::Xor),
