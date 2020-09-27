@@ -65,7 +65,7 @@ impl TryFrom<&str> for BoolOperator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Condition<F> {
     FieldCondition(BaseCondition<F>),
     BoolCondition(Box<NestedCondition<F>>),
@@ -91,7 +91,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BaseCondition<F> {
     value: String,
     operator: FieldOperator,
@@ -132,7 +132,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NestedCondition<F> {
     lhs_cond: Condition<F>,
     operator: BoolOperator,

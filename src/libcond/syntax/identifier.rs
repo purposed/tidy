@@ -1,5 +1,7 @@
 use nom::{
+    bytes::complete::take_while,
     character::complete::{alphanumeric1, anychar, char},
+    character::is_alphabetic,
     combinator::{all_consuming, opt, recognize, verify},
     multi::many0_count,
     sequence::pair,
@@ -8,10 +10,7 @@ use nom::{
 };
 
 pub fn identifier(s: &str) -> IResult<&str, &str> {
-    recognize(all_consuming(pair(
-        verify(anychar, |&c| c.is_lowercase()),
-        many0_count(preceded(opt(char('_')), alphanumeric1)),
-    )))(s)
+    take_while(move |c: char| c == '_' || c.is_alphabetic())(s)
 }
 
 #[cfg(test)]

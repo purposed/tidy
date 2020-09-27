@@ -1,13 +1,19 @@
 use std::convert::TryFrom;
 
-use nom::{bytes::complete::tag, combinator::map_res, sequence::preceded, IResult};
+use nom::{
+    bytes::complete::tag,
+    combinator::map_res,
+    sequence::{delimited, preceded},
+    IResult,
+};
 
-use super::identifier::identifier;
+use super::{identifier::identifier, whitespace};
 
 pub fn field<F: TryFrom<String>>(i: &str) -> IResult<&str, F> {
-    map_res(preceded(tag("@"), identifier), |c| {
-        F::try_from(String::from(c))
-    })(i)
+    map_res(
+        delimited(whitespace, preceded(tag("@"), identifier), whitespace),
+        |c| F::try_from(String::from(c)),
+    )(i)
 }
 
 #[cfg(test)]

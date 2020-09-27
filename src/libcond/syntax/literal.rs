@@ -7,15 +7,21 @@ use nom::{
     IResult,
 };
 
+use super::whitespace;
+
 pub fn string_literal(input: &str) -> IResult<&str, String> {
     let seq = recognize(separated_list(tag("\"\""), many0(none_of("\""))));
     let unquote = escaped_transform(none_of("\""), '"', tag("\""));
-    let res = delimited(tag("\""), map_parser(seq, unquote), tag("\""))(input)?;
+    let res = delimited(
+        whitespace,
+        delimited(tag("\""), map_parser(seq, unquote), tag("\"")),
+        whitespace,
+    )(input)?;
     Ok(res)
 }
 
 pub fn number(i: &str) -> IResult<&str, String> {
-    map(digit1, String::from)(i)
+    map(delimited(whitespace, digit1, whitespace), String::from)(i)
 }
 
 #[cfg(test)]
@@ -25,7 +31,7 @@ mod tests {
 
     #[test]
     fn literal_correct_form() {
-        let (r, l) = string_literal("\"bing\"").unwrap();
+        let (r, l) = string_literal(" \"bing\" ").unwrap();
         assert_eq!(r, "");
         assert_eq!(&l, "bing");
     }

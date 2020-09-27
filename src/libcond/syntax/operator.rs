@@ -68,6 +68,7 @@ mod tests {
 
     field_op! {
         field_operator_eq: ("==\t", FieldOperator::Equal),
+        field_operator_eq_2: (" == ", FieldOperator::Equal),
         field_operator_neq: (" != ", FieldOperator::NotEqual),
         field_operator_gt: (" >", FieldOperator::Gt),
         field_operator_lt: (" < ", FieldOperator::Lt),
