@@ -1,8 +1,14 @@
 use std::convert::TryFrom;
 
-use rood::CausedResult;
+use snafu::Snafu;
 
 use crate::{Action, Condition, GetField};
+
+#[derive(Clone, Debug, Snafu)]
+pub enum Error {
+    ConditionEvaluationError { message: String },
+    ActionExecutionError { message: String },
+}
 
 pub struct Rule<T, F>
 where
@@ -16,6 +22,7 @@ where
 impl<T, F> Rule<T, F>
 where
     T: GetField<F>,
+    T::Error: std::error::Error,
     F: TryFrom<String>,
 {
     pub fn new(
@@ -30,10 +37,19 @@ where
         }
     }
 
-    pub fn apply(&self, item: &T) -> CausedResult<bool> {
-        let cond_val = self.condition.eval(item)?;
+    pub fn apply(&self, item: &T) -> Result<bool, Error> {
+        let cond_val = self
+            .condition
+            .eval(item)
+            .map_err(|e| Error::ConditionEvaluationError {
+                message: e.to_string(),
+            })?;
         if cond_val {
-            self.action.execute(item)?;
+            self.action
+                .execute(item)
+                .map_err(|e| Error::ActionExecutionError {
+                    message: e.to_string(),
+                })?;
         }
         Ok(cond_val)
     }

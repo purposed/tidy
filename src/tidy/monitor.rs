@@ -4,9 +4,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time;
 
+use anyhow::{Context, Error, Result};
+
 use libcond::{Condition, Rule};
-use rood::{Cause, CausedResult, Error};
+
 use shellexpand::tilde;
+
 use walkdir::WalkDir;
 
 use super::file::{File, FileField};
@@ -20,7 +23,7 @@ pub struct Monitor {
 }
 
 impl Monitor {
-    fn try_apply<P>(&self, p: P) -> CausedResult<bool>
+    fn try_apply<P>(&self, p: P) -> Result<bool>
     where
         P: AsRef<Path>,
         P: fmt::Debug,
@@ -39,22 +42,16 @@ impl Monitor {
         Ok(at_least_one)
     }
 
-    pub fn check(&self) -> CausedResult<()> {
+    pub fn check(&self) -> Result<()> {
         if self.recursive {
             let wk = WalkDir::new(&self.root_directory);
-            for pos_path in wk.into_iter() {
-                match pos_path {
-                    Ok(d_entry) => {
-                        let _applied = self.try_apply(d_entry.path())?; // TODO: Do something with.
-                    }
-                    Err(e) => return Err(Error::new(Cause::IOError, &format!("{}", e))),
-                }
+            for pos_path in wk.into_iter().filter_map(|f| f.ok()) {
+                let _applied = self.try_apply(pos_path.path())?; // TODO: Do something with.
             }
         } else {
             // Non-recursive implementation.
             let data = fs::read_dir(&self.root_directory)?;
-            for f in data.into_iter() {
-                let dir_entry = f?;
+            for dir_entry in data.into_iter().filter_map(|f| f.ok()) {
                 let _applied = self.try_apply(dir_entry.path())?; // TODO: Use.
             }
         }
@@ -65,13 +62,11 @@ impl Monitor {
 impl TryFrom<MonitorDefinition> for Monitor {
     type Error = Error;
 
-    fn try_from(other: MonitorDefinition) -> CausedResult<Monitor> {
-        let check_frequency = match parse_duration::parse(&other.check_frequency) {
-            Ok(f) => Ok(f),
-            Err(_) => Err(Error::new(Cause::InvalidData, "Invalid check frequency")),
-        }?;
+    fn try_from(other: MonitorDefinition) -> Result<Monitor> {
+        let check_frequency =
+            parse_duration::parse(&other.check_frequency).context("Invalid check frequency")?;
 
-        let rules: CausedResult<Vec<Rule<File, FileField>>> =
+        let rules: Result<Vec<Rule<File, FileField>>> =
             other.rules.into_iter().map(Rule::try_from).collect();
 
         Ok(Monitor {
@@ -88,7 +83,7 @@ impl TryFrom<MonitorDefinition> for Monitor {
 impl TryFrom<RuleDefinition> for Rule<File, FileField> {
     type Error = Error;
 
-    fn try_from(other: RuleDefinition) -> CausedResult<Rule<File, FileField>> {
+    fn try_from(other: RuleDefinition) -> Result<Rule<File, FileField>> {
         Ok(Rule::new(
             //other.name,
             Condition::parse(&other.condition)?,

@@ -3,8 +3,9 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use anyhow::{anyhow, ensure, Result};
+
 use rood::cli::OutputManager;
-use rood::{Cause, CausedResult, Error};
 
 use crate::tidy::Monitor;
 
@@ -25,29 +26,22 @@ impl MonitorThread {
         }
     }
 
-    pub fn signal_stop(&self) -> CausedResult<()> {
+    pub fn signal_stop(&self) -> Result<()> {
         match self.stop_channel.send(true) {
-            Err(e) => Err(Error::new(
-                Cause::GeneralError(String::from("SendError")),
-                &format!("{}", e),
-            )),
+            Err(e) => Err(anyhow!("SendError: {}", e.to_string())),
             _ => Ok(()),
         }
     }
 
-    pub fn wait(&mut self) -> CausedResult<()> {
+    pub fn wait(&mut self) -> Result<()> {
         let res = self
             .thread_handle
             .take()
-            .ok_or_else(|| Error::new(Cause::InvalidState, "Cannot call wait on a stopped thread"))?
+            .ok_or_else(|| anyhow!("Cannot call stop on a stopped thread"))? // TODO: Here again, refactor to prevent invalid states.
             .join();
 
-        if let Err(_e) = res {
-            return Err(Error::new(
-                Cause::GeneralError(String::from("ThreadError")),
-                "Failed to join thread ({})",
-            ));
-        }
+        ensure!(res.is_ok(), "Failed to join thread");
+
         Ok(())
     }
 

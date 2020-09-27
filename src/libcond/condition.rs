@@ -1,10 +1,19 @@
 use std::convert::TryFrom;
 
-use rood::{Cause, CausedResult, Error};
+use snafu::{ResultExt, Snafu};
 
-use crate::{parse_condition, GetField};
+use crate::syntax;
+use crate::GetField;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Snafu)]
+pub enum Error {
+    BoolOperatorCastError { operator: String },
+    FieldOperatorCastError { operator: String },
+    GetFieldError { message: String },
+    ParseError { source: syntax::Error },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum FieldOperator {
     Equal,
     NotEqual,
@@ -14,48 +23,49 @@ pub enum FieldOperator {
     Geq,
 }
 
-impl TryFrom<String> for FieldOperator {
+type Result<T> = std::result::Result<T, Error>;
+
+impl TryFrom<&str> for FieldOperator {
     type Error = Error;
-    fn try_from(v: String) -> CausedResult<FieldOperator> {
-        match v.as_ref() {
+
+    fn try_from(v: &str) -> Result<FieldOperator> {
+        match v {
             "==" => Ok(FieldOperator::Equal),
             "!=" => Ok(FieldOperator::NotEqual),
             "<" => Ok(FieldOperator::Lt),
             ">" => Ok(FieldOperator::Gt),
             "<=" => Ok(FieldOperator::Leq),
             ">=" => Ok(FieldOperator::Geq),
-            _ => Err(Error::new(
-                Cause::InvalidData,
-                &format!("Could not cast '{}' to FieldOperator", v),
-            )),
+            _ => Err(Error::FieldOperatorCastError {
+                operator: v.to_string(),
+            }),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BoolOperator {
     And,
     Or,
     Xor,
 }
 
-impl TryFrom<String> for BoolOperator {
+impl TryFrom<&str> for BoolOperator {
     type Error = Error;
 
-    fn try_from(v: String) -> CausedResult<BoolOperator> {
+    fn try_from(v: &str) -> Result<BoolOperator> {
         match v.as_ref() {
             "&&" => Ok(BoolOperator::And),
             "||" => Ok(BoolOperator::Or),
             "-|" => Ok(BoolOperator::Xor),
-            _ => Err(Error::new(
-                Cause::InvalidData,
-                &format!("Could not cast '{}' to BoolOperator", v),
-            )),
+            _ => Err(Error::BoolOperatorCastError {
+                operator: v.to_string(),
+            }),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Condition<F> {
     FieldCondition(BaseCondition<F>),
     BoolCondition(Box<NestedCondition<F>>),
@@ -65,13 +75,14 @@ impl<F> Condition<F>
 where
     F: TryFrom<String>,
 {
-    pub fn parse(src: &str) -> CausedResult<Condition<F>> {
-        parse_condition(src)
+    pub fn parse(src: &str) -> Result<Condition<F>> {
+        syntax::parse_condition(src).context(ParseError)
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
         match self {
             Condition::FieldCondition(f) => f.eval(target),
@@ -80,7 +91,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct BaseCondition<F> {
     value: String,
     operator: FieldOperator,
@@ -99,11 +110,16 @@ where
         }
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
-        let field_val = target.get_field(&self.field)?;
+        let field_val = target
+            .get_field_value(&self.field)
+            .map_err(|e| Error::GetFieldError {
+                message: e.to_string(),
+            })?;
 
         Ok(match self.operator {
             FieldOperator::Equal => field_val == self.value,
@@ -116,7 +132,7 @@ where
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct NestedCondition<F> {
     lhs_cond: Condition<F>,
     operator: BoolOperator,
@@ -139,9 +155,10 @@ where
         }
     }
 
-    pub fn eval<T>(&self, target: &T) -> CausedResult<bool>
+    pub fn eval<T>(&self, target: &T) -> Result<bool>
     where
         T: GetField<F>,
+        T::Error: ToString,
     {
         let left_val = self.lhs_cond.eval(target)?;
         let right_val = self.rhs_cond.eval(target)?;
