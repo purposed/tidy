@@ -1,7 +1,12 @@
 use std::cmp::Ordering;
+use std::convert::TryFrom;
 use std::str::FromStr;
 use std::time;
 use std::time::Duration;
+
+use super::Error;
+
+type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Clone, Debug)]
 pub enum FieldValue {
@@ -13,6 +18,42 @@ pub enum FieldValue {
 impl From<&str> for FieldValue {
     fn from(v: &str) -> FieldValue {
         FieldValue::String(String::from(v))
+    }
+}
+
+impl TryFrom<FieldValue> for String {
+    type Error = Error;
+
+    fn try_from(v: FieldValue) -> Result<String> {
+        if let FieldValue::String(s) = v {
+            Ok(s)
+        } else {
+            Err(Error::FieldTypeError)
+        }
+    }
+}
+
+impl TryFrom<FieldValue> for u64 {
+    type Error = Error;
+
+    fn try_from(v: FieldValue) -> Result<u64> {
+        if let FieldValue::Number(s) = v {
+            Ok(s)
+        } else {
+            Err(Error::FieldTypeError)
+        }
+    }
+}
+
+impl TryFrom<FieldValue> for time::Duration {
+    type Error = Error;
+
+    fn try_from(v: FieldValue) -> Result<time::Duration> {
+        if let FieldValue::Duration(d) = v {
+            Ok(d)
+        } else {
+            Err(Error::FieldTypeError)
+        }
     }
 }
 

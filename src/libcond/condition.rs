@@ -116,7 +116,7 @@ where
         T::Error: ToString,
     {
         let field_val = target
-            .get_field(&self.field)
+            .get_field_value(&self.field)
             .map_err(|e| Error::GetFieldError {
                 message: e.to_string(),
             })?;

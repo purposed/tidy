@@ -1,32 +1,23 @@
-use std::error::Error;
 use std::fmt;
 
-#[derive(Debug)]
-pub struct ExecutionError {
-    message: String,
+pub enum Error {
+    ExecutionError { message: String },
+    FieldTypeError,
 }
 
-impl ExecutionError {
-    pub fn new<T>(msg: T) -> Self
-    where
-        String: From<T>,
-    {
-        ExecutionError {
-            message: String::from(msg),
-        }
-    }
-}
-
-impl<T: Error> From<T> for ExecutionError {
+impl<T: std::error::Error> From<T> for Error {
     fn from(e: T) -> Self {
-        ExecutionError {
+        Error::ExecutionError {
             message: e.to_string(),
         }
     }
 }
 
-impl std::fmt::Display for ExecutionError {
+impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.message)
+        match self {
+            Error::ExecutionError { message } => write!(f, "{}", message),
+            Error::FieldTypeError => write!(f, "Field type error"),
+        }
     }
 }

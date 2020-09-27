@@ -59,7 +59,7 @@ impl File {
 impl GetField<FileField> for File {
     type Error = Infallible;
 
-    fn get_field(&self, field: &FileField) -> Result<FieldValue, Self::Error> {
+    fn get_field_value(&self, field: &FileField) -> Result<FieldValue, Self::Error> {
         // TODO: Handle errors cleanly
         match field {
             FileField::Name => Ok(FieldValue::String(String::from(

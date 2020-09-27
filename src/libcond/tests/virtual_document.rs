@@ -57,7 +57,7 @@ impl VirtualDocument {
 
 impl GetField<VirtualField> for VirtualDocument {
     type Error = Error;
-    fn get_field(&self, field: &VirtualField) -> Result<FieldValue, Error> {
+    fn get_field_value(&self, field: &VirtualField) -> Result<FieldValue, Error> {
         Ok(self.internal.get(field).ok_or(Error::InvalidData)?.clone())
     }
 }

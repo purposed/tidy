@@ -12,6 +12,8 @@ use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
 
 use rood::cli::OutputManager;
 
+use shellexpand::tilde;
+
 use tidy::Engine;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -19,6 +21,7 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn cli_run(matches: &ArgMatches) -> Result<()> {
     let verbose = matches.is_present("verbose");
     let config_path = matches.value_of("config").unwrap(); // Mandatory argument.
+    println!("Got config: {}", config_path);
 
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
@@ -46,6 +49,8 @@ fn cli_dispatch(matches: ArgMatches) -> Result<()> {
 }
 
 fn main() {
+    let default_config = tilde("~/.config/purposed/tidy/config.json").to_string();
+
     let app = App::new("tidy")
         .version(VERSION)
         .author("Purposed")
@@ -60,7 +65,7 @@ fn main() {
                         .short("c")
                         .help("Path to the config file to use")
                         .required(false)
-                        .default_value("config.json"),
+                        .default_value(&default_config),
                 )
                 .arg(
                     Arg::with_name("verbose")
