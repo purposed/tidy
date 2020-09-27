@@ -18,12 +18,6 @@ jobs:
         with:
           toolchain: stable
           override: true
-      - name: Bootstrap Landlord
-        run: |
-          sudo wget https://github.com/purposed/binman/releases/download/v0.2.0/binman-linux-amd64 -O /usr/local/bin/binman
-          sudo chmod +x /usr/local/bin/binman
-          binman --version
-          sudo binman install --dir /usr/local/bin landlord
       - name: Mount build cache
         uses: actions/cache@v1
         with:
@@ -31,5 +25,6 @@ jobs:
           key: tidy-release-cache
       - name: Validate
         run: |
-          landlord validate --mode release
-          landlord validate --mode debug
+          cargo check
+          cargo clippy
+          cargo test
