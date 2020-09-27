@@ -51,7 +51,7 @@ impl Monitor {
         } else {
             // Non-recursive implementation.
             let data = fs::read_dir(&self.root_directory)?;
-            for dir_entry in data.into_iter().filter_map(|f| f.ok()) {
+            for dir_entry in data.filter_map(|f| f.ok()) {
                 let _applied = self.try_apply(dir_entry.path())?; // TODO: Use.
             }
         }
