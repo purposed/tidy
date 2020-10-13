@@ -20,7 +20,7 @@ clap = "2.33.3"
 ctrlc = "3.1.7"
 nom = "5"
 serde = { version = "1.0.116", features = ["derive"]}
-serde_json = "1.0.58"
+serde_json = "1.0.59"
 snafu = "0.6"
 parse_duration = "2.1.0"
 rood = "0.2"
