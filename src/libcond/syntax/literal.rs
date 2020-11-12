@@ -2,7 +2,7 @@ use nom::{
     bytes::complete::{escaped_transform, tag},
     character::complete::{digit1, none_of},
     combinator::{map, map_parser, recognize},
-    multi::{many0, separated_list},
+    multi::{many0, separated_list1},
     sequence::delimited,
     IResult,
 };
@@ -10,7 +10,7 @@ use nom::{
 use super::whitespace;
 
 pub fn string_literal(input: &str) -> IResult<&str, String> {
-    let seq = recognize(separated_list(tag("\"\""), many0(none_of("\""))));
+    let seq = recognize(separated_list1(tag("\"\""), many0(none_of("\""))));
     let unquote = escaped_transform(none_of("\""), '"', tag("\""));
     let res = delimited(
         whitespace,
@@ -37,8 +37,10 @@ mod tests {
     }
 
     #[test]
-    fn empty_literal_invalid() {
-        assert!(string_literal("\"\"").is_err());
+    fn empty_literal_valid() {
+        let (r, l) = string_literal("\"\"").unwrap();
+        assert_eq!(r, "");
+        assert_eq!(&l, "");
     }
 
     #[test]
