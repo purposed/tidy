@@ -43,6 +43,11 @@ impl Monitor {
     }
 
     pub fn check(&self) -> Result<()> {
+        if !self.root_directory.exists() {
+            log::debug!("monitor directory does not exist - skipping");
+            return Ok(());
+        }
+
         if self.recursive {
             let wk = WalkDir::new(&self.root_directory);
             for pos_path in wk.into_iter().filter_map(|f| f.ok()) {

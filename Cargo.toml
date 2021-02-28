@@ -16,13 +16,17 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-clap = "2.33.3"
-ctrlc = "3.1.8"
+clap = "3.0.0-beta.2"
+env_logger = "0.8"
+futures = "0.3"
+log = "0.4"
 nom = "6"
 serde = { version = "1.0.123", features = ["derive"]}
 serde_json = "1.0.62"
 snafu = "0.6"
 parse_duration = "2.1.0"
-rood = "0.4"
 shellexpand = "2.1.0"
+tokio = {version = "1", features = ["full"]}
 walkdir = "2"
+
+[package.metadata.deb.systemd-units]

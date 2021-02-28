@@ -1,94 +1,84 @@
-use std::sync::mpsc;
-use std::thread;
-use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use anyhow::{anyhow, Result};
 
-use anyhow::{anyhow, ensure, Result};
-
-use rood::cli::OutputManager;
+use tokio::sync::mpsc;
+use tokio::task::JoinHandle;
 
 use crate::tidy::Monitor;
 
 pub struct MonitorThread {
-    thread_handle: Option<JoinHandle<()>>,
+    handle: JoinHandle<()>,
     stop_channel: mpsc::Sender<bool>,
 }
 
 impl MonitorThread {
-    pub fn start(m: Monitor, output: OutputManager) -> MonitorThread {
-        let (tx, rx) = mpsc::channel();
+    pub fn start(m: Monitor) -> MonitorThread {
+        let (tx, rx) = mpsc::channel(1);
 
         MonitorThread {
-            thread_handle: Some(thread::spawn(move || {
-                MonitorThread::thread_main(m, rx, output)
-            })),
+            handle: tokio::task::spawn(async move {
+                if let Err(e) = MonitorThread::thread_main(m, rx).await {
+                    log::error!("unhandled error in monitor thread: {}", e);
+                }
+            }),
             stop_channel: tx,
         }
     }
 
-    pub fn signal_stop(&self) -> Result<()> {
-        match self.stop_channel.send(true) {
+    pub async fn signal_stop(&self) -> Result<()> {
+        match self.stop_channel.send(true).await {
             Err(e) => Err(anyhow!("SendError: {}", e.to_string())),
             _ => Ok(()),
         }
     }
 
-    pub fn wait(&mut self) -> Result<()> {
-        let res = self
-            .thread_handle
-            .take()
-            .ok_or_else(|| anyhow!("Cannot call stop on a stopped thread"))? // TODO: Here again, refactor to prevent invalid states.
-            .join();
-
-        ensure!(res.is_ok(), "Failed to join thread");
-
+    pub async fn join(self) -> Result<()> {
+        self.handle.await?;
         Ok(())
     }
 
-    fn check(mon: &Monitor, output: &OutputManager) {
-        output.step(&format!(
-            "Checking monitor {}...",
-            mon.root_directory.to_str().unwrap()
-        ));
+    fn check(mon: &Monitor) {
+        log::info!("checking monitor for '{:?}'", mon.root_directory);
         match mon.check() {
             Ok(_) => {
                 // TODO: Print execution report in debug info.
-                output.success("OK");
+                log::info!("monitoring complete for '{:?}'", mon.root_directory);
             }
-            Err(e) => output.error(&format!("{}", e)),
+            Err(e) => {
+                log::error!("{}", e);
+            }
         }
     }
 
-    fn thread_main(monitor: Monitor, signal_receiver: mpsc::Receiver<bool>, output: OutputManager) {
-        output.debug(&format!(
-            "Monitor started for [{}]",
-            &monitor.root_directory.to_str().unwrap()
-        ));
-
-        // Perform the first monitor check.
-        MonitorThread::check(&monitor, &output);
-        let mut last_check_time = Instant::now();
+    async fn thread_main(
+        monitor: Monitor,
+        mut signal_receiver: mpsc::Receiver<bool>,
+    ) -> Result<()> {
+        log::debug!("monitor started for '{:?}'", &monitor.root_directory);
 
         loop {
-            thread::sleep(Duration::from_millis(50)); // TODO: Customize.
+            MonitorThread::check(&monitor);
 
-            match signal_receiver.try_recv() {
-                Ok(_) | Err(mpsc::TryRecvError::Disconnected) => {
-                    // Terminating...
-                    output.debug(&format!(
-                        "Monitor for [{}] received exit signal",
-                        &monitor.root_directory.to_str().unwrap()
-                    ));
-                    break;
+            let delay = tokio::time::sleep(monitor.check_frequency);
+            tokio::pin!(delay);
+
+            let should_stop = tokio::select! {
+                _ = &mut delay => {
+                    false
                 }
-                Err(mpsc::TryRecvError::Empty) => {}
-            }
+                _ = signal_receiver.recv() => {
+                    true
+                }
+            };
 
-            let current_instant = Instant::now();
-            if current_instant.duration_since(last_check_time) > monitor.check_frequency {
-                MonitorThread::check(&monitor, &output);
-                last_check_time = current_instant;
+            if should_stop {
+                log::info!(
+                    "monitor for '{:?}' received exit signal",
+                    &monitor.root_directory
+                );
+                break;
             }
         }
+
+        Ok(())
     }
 }

@@ -1,67 +1,47 @@
 use std::convert::TryFrom;
 
-use anyhow::{anyhow, Result};
-
-use rood::cli::OutputManager;
+use anyhow::Result;
 
 use super::{Manifest, Monitor};
 use crate::tidy::monitor_thread::MonitorThread;
 
 pub struct Engine {
-    monitors: Option<Vec<Monitor>>,
-
-    threads: Option<Vec<MonitorThread>>,
-
-    output: OutputManager,
+    monitors: Vec<MonitorThread>,
 }
 
 impl Engine {
-    pub fn new(config_source: &str, verbose: bool) -> Result<Engine> {
+    pub fn start(config_source: &str) -> Result<Engine> {
         let man: Manifest = serde_json::from_str(config_source)?;
 
-        let monitors = man
+        let monitors: Vec<MonitorThread> = man
             .monitors
             .into_iter()
             .map(Monitor::try_from)
-            .collect::<Result<Vec<Monitor>>>()?;
+            .collect::<Result<Vec<Monitor>>>()?
+            .into_iter()
+            .map(MonitorThread::start)
+            .collect();
 
-        Ok(Engine {
-            monitors: Some(monitors),
-            threads: None,
-            output: OutputManager::new(verbose),
-        })
+        Ok(Engine { monitors })
     }
 
-    pub fn start(&mut self) -> Result<()> {
-        // TODO: Do two-tier start struct to prevent invalid states (e.g. already started engines.)
-        self.output.step("Tidy Engine started");
-        let mons = self
-            .monitors
-            .take()
-            .ok_or_else(|| anyhow!("Engine already started"))?;
+    pub async fn stop(self) -> Result<()> {
+        log::info!("sending stop signal to the tidy engine");
 
-        let mut threads = Vec::new();
-        for monitor in mons.into_iter() {
-            threads.push(MonitorThread::start(monitor, self.output.push()));
-        }
-        self.threads = Some(threads);
+        // Get an iterator of joinable futures for stopping each task.
+        let join_futures = self.monitors.into_iter().map(|mon| async move {
+            mon.signal_stop().await?;
+            mon.join().await?;
+            Ok(()) as Result<()>
+        });
 
-        Ok(())
-    }
+        // Wait until all tasks are stopped and return the errors.
+        futures::future::join_all(join_futures)
+            .await
+            .into_iter()
+            .collect::<Result<Vec<()>>>()?;
 
-    pub fn stop(&mut self) -> Result<()> {
-        self.output.step("Stopping Tidy Engine");
-        let mut threads = self
-            .threads
-            .take()
-            .ok_or_else(|| anyhow!("Engine not running"))?;
-
-        threads.iter_mut().try_for_each(|t| {
-            t.signal_stop()?;
-            t.wait()
-        })?;
-
-        self.output.step("Goodbye!");
+        log::info!("goodbye!");
 
         Ok(())
     }

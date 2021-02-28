@@ -1,83 +1,64 @@
 mod tidy;
 
 use std::fs;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::thread;
-use std::time;
+use std::path::PathBuf;
 
 use anyhow::Result;
 
-use clap::{App, AppSettings, Arg, ArgMatches, SubCommand};
-
-use rood::cli::OutputManager;
-
-use shellexpand::tilde;
+use clap::Clap;
 
 use tidy::Engine;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-fn cli_run(matches: &ArgMatches) -> Result<()> {
-    let verbose = matches.is_present("verbose");
-    let config_path = matches.value_of("config").unwrap(); // Mandatory argument.
-    println!("Got config: {}", config_path);
-
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .expect("Error setting Ctrl-C handler");
+async fn run(config: String) -> Result<()> {
+    let config_path: PathBuf = shellexpand::tilde(&config).to_string().into();
 
     let raw_data = fs::read_to_string(config_path)?;
-    let mut engine = Engine::new(&raw_data, verbose)?;
-    engine.start()?;
 
-    while running.load(Ordering::SeqCst) {
-        thread::sleep(time::Duration::from_millis(1000));
-    }
-    engine.stop()
+    let engine = Engine::start(&raw_data)?;
+
+    tokio::signal::ctrl_c().await?;
+
+    engine.stop().await
 }
 
-fn cli_dispatch(matches: ArgMatches) -> Result<()> {
-    match matches.subcommand() {
-        ("run", Some(m)) => cli_run(m),
-        _ => Ok(()),
+#[derive(Clap)]
+enum Action {
+    #[clap(name = "run")]
+    Run,
+}
+
+#[derive(Clap)]
+#[clap(version = VERSION, author = "Purposed")]
+struct Options {
+    #[clap(
+        long = "cfg",
+        short = 'c',
+        default_value = "~/.config/purposed/tidy/config.json"
+    )]
+    config: String,
+
+    #[clap(subcommand)]
+    action: Action,
+}
+
+impl Options {
+    pub async fn execute(self) -> Result<()> {
+        match self.action {
+            Action::Run => run(self.config).await?,
+        }
+        Ok(())
     }
 }
 
-fn main() {
-    let default_config = tilde("~/.config/purposed/tidy/config.json").to_string();
+#[tokio::main]
+async fn main() {
+    env_logger::init_from_env(
+        env_logger::Env::default().filter_or(env_logger::DEFAULT_FILTER_ENV, "info"),
+    );
 
-    let app = App::new("tidy")
-        .version(VERSION)
-        .author("Purposed")
-        .about("Rapid filesystem organizer")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(
-            SubCommand::with_name("run")
-                .about("Starts the Tidy watcher")
-                .arg(
-                    Arg::with_name("config")
-                        .long("cfg")
-                        .short("c")
-                        .help("Path to the config file to use")
-                        .required(false)
-                        .default_value(&default_config),
-                )
-                .arg(
-                    Arg::with_name("verbose")
-                        .long("verbose")
-                        .short("v")
-                        .help("Whether to use verbose output")
-                        .required(false),
-                ),
-        );
-
-    match cli_dispatch(app.get_matches()) {
-        Ok(_) => {}
-        Err(e) => OutputManager::new(false).error(&format!("{}", e)),
+    if let Err(e) = Options::parse().execute().await {
+        log::error!("{}", e);
     }
 }
