@@ -5,7 +5,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 
-use clap::Clap;
+use clap::Parser;
 
 use tidy::Engine;
 
@@ -23,13 +23,13 @@ async fn run(config: String) -> Result<()> {
     engine.stop().await
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum Action {
     #[clap(name = "run")]
     Run,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = VERSION, author = "Purposed")]
 struct Options {
     #[clap(
