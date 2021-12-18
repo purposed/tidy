@@ -7,10 +7,10 @@ use crate::GetField;
 
 #[derive(Clone, Debug, Snafu)]
 pub enum Error {
-    BoolOperatorCastError { operator: String },
-    FieldOperatorCastError { operator: String },
-    GetFieldError { message: String },
-    ParseError { source: syntax::Error },
+    InvalidBoolOperatorCast { operator: String },
+    InvalidFieldOperatorCast { operator: String },
+    FailedToGetField { message: String },
+    InvalidParse { source: syntax::Error },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -36,7 +36,7 @@ impl TryFrom<&str> for FieldOperator {
             ">" => Ok(FieldOperator::Gt),
             "<=" => Ok(FieldOperator::Leq),
             ">=" => Ok(FieldOperator::Geq),
-            _ => Err(Error::FieldOperatorCastError {
+            _ => Err(Error::InvalidFieldOperatorCast {
                 operator: v.to_string(),
             }),
         }
@@ -58,7 +58,7 @@ impl TryFrom<&str> for BoolOperator {
             "&&" => Ok(BoolOperator::And),
             "||" => Ok(BoolOperator::Or),
             "-|" => Ok(BoolOperator::Xor),
-            _ => Err(Error::BoolOperatorCastError {
+            _ => Err(Error::InvalidBoolOperatorCast {
                 operator: v.to_string(),
             }),
         }
@@ -76,7 +76,7 @@ where
     F: TryFrom<String>,
 {
     pub fn parse(src: &str) -> Result<Condition<F>> {
-        syntax::parse_condition(src).context(ParseError)
+        syntax::parse_condition(src).context(InvalidParse)
     }
 
     pub fn eval<T>(&self, target: &T) -> Result<bool>
@@ -115,11 +115,12 @@ where
         T: GetField<F>,
         T::Error: ToString,
     {
-        let field_val = target
-            .get_field_value(&self.field)
-            .map_err(|e| Error::GetFieldError {
-                message: e.to_string(),
-            })?;
+        let field_val =
+            target
+                .get_field_value(&self.field)
+                .map_err(|e| Error::FailedToGetField {
+                    message: e.to_string(),
+                })?;
 
         Ok(match self.operator {
             FieldOperator::Equal => field_val == self.value,
