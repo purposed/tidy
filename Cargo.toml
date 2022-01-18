@@ -16,7 +16,7 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1.0"
-clap = {version = "3.0.7", features = ["derive"]}
+clap = {version = "3.0.10", features = ["derive"]}
 env_logger = "0.9"
 futures = "0.3"
 lexical-core = "0.8.2"
